@@ -19,8 +19,6 @@
 
 Say goodbye to electron-bloat. Whether you have an organized library of 100 tracks or a sprawling, chaotic folder of 10,000 FLAC and MP3 files, Music Player handles it seamlessly via background QtConcurrent database threading and heavy memory-culling.
 
-> 📖 **New contributor?** Read the complete [Developer Guide](DEVELOPER_GUIDE.md) for an in-depth walkthrough of the architecture, every C++ class, every QML view, and step-by-step build instructions.
-
 ---
 
 ## ✨ Key Features
@@ -88,6 +86,27 @@ cmake --build . -j$(nproc)
 ./MusicPlayer
 ```
 
+### Compilation (Windows via MSYS2)
+To compile a native Windows `.exe` without needing a heavy Visual Studio installation or complex cross-compiler, utilize the MSYS2 (MinGW-w64) subsystem.
+
+1. Download and install [MSYS2](https://www.msys2.org/).
+2. Open the **MSYS2 UCRT64** terminal and install the compiler, CMake, Qt5, and TagLib:
+   ```bash
+   pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt5-base mingw-w64-ucrt-x86_64-qt5-declarative mingw-w64-ucrt-x86_64-qtsvg mingw-w64-ucrt-x86_64-taglib
+   ```
+3. Clone and build the project utilizing Ninja:
+   ```bash
+   git clone https://github.com/LordTael125/Music-Player.git
+   cd Music-Player
+   mkdir build && cd build
+   cmake -G Ninja ..
+   ninja
+   ```
+4. To bundle the resulting `MusicPlayer.exe` for standalone distribution (zipping it up for friends who do not have MSYS2 installed), execute Qt's official deployment tool inside the build folder:
+   ```bash
+   windeployqt --qmldir ../qml MusicPlayer.exe
+   ```
+
 ---
 
 ## 📜 License
@@ -97,6 +116,15 @@ You are free to use, modify, and distribute this software under the constraints 
 
 ---
 
+## Documentation
+
+> 📖 **New contributor?** Read the complete [Developer Guide] for an in-depth walkthrough of the architecture, every C++ class, every QML view, and step-by-step build instructions.
+
+<div align="center">
+  <a href="https://lordtael125.github.io/Music-Player/">Documentation</a>
+</div>
+
+---
 <div align="center">
   <i>Developed by <a href="https://github.com/LordTael125">LordTael125</a></i>
 </div>
