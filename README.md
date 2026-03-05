@@ -7,6 +7,7 @@
 [![C++](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/)
 [![Qt](https://img.shields.io/badge/Qt-5.15-41cd52.svg)](https://www.qt.io/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Docs](https://img.shields.io/badge/Developer%20Guide-available-brightgreen)](DEVELOPER_GUIDE.md)
 
 </div>
 
@@ -17,6 +18,8 @@
 **Music Player** is a modern, high-performance local audio library manager tailored for users who want premium aesthetics without sacrificing system resources. Built from the ground up using **C++**, **Qt Quick (QML)**, and **MiniAudio**, it delivers a buttery-smooth 60 FPS experience even on heavily constrained hardware (e.g., dual-core CPUs with 500 MB of RAM).
 
 Say goodbye to electron-bloat. Whether you have an organized library of 100 tracks or a sprawling, chaotic folder of 10,000 FLAC and MP3 files, Music Player handles it seamlessly via background QtConcurrent database threading and heavy memory-culling.
+
+> 📖 **New contributor?** Read the complete [Developer Guide](DEVELOPER_GUIDE.md) for an in-depth walkthrough of the architecture, every C++ class, every QML view, and step-by-step build instructions.
 
 ---
 
@@ -95,5 +98,5 @@ You are free to use, modify, and distribute this software under the constraints 
 ---
 
 <div align="center">
-  <i>Developed with ❤️ by <a href="https://github.com/LordTael125">LordTael125</a></i>
+  <i>Developed by <a href="https://github.com/LordTael125">LordTael125</a></i>
 </div>

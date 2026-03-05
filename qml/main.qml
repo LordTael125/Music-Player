@@ -7,7 +7,7 @@ import Qt.labs.platform 1.1 as Platform
 
 ApplicationWindow {
     id: window
-    width: 1024
+    width: 1260
     height: 768
     visible: true
     title: qsTr("Modern Music Player")
