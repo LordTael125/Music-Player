@@ -4,12 +4,14 @@ import QtQuick.Controls.Material 2.15
 import QtQuick.Window 2.15
 import QtQuick.Layouts 1.15
 import Qt.labs.platform 1.1 as Platform
+import Qt.labs.settings 1.0
 
 ApplicationWindow {
     id: window
     width: 1260
     height: 768
     visible: true
+    visibility: Window.Maximized
     title: qsTr("Modern Music Player")
     flags: Qt.Window | Qt.FramelessWindowHint
     
@@ -24,7 +26,93 @@ ApplicationWindow {
     property string currentPlayingPath: ""
     property var playbackQueue: []
     property int currentQueueIndex: -1
-    property bool repeatMode: false
+    property int repeatMode: 0 // 0: Off, 1: Track, 2: All
+
+    property bool isFullScreen: false
+    function toggleFullScreen() {
+        if (isFullScreen) {
+            window.showMaximized()
+            isFullScreen = false
+        } else {
+            window.showFullScreen()
+            isFullScreen = true
+        }
+    }
+
+    Settings {
+        id: sessionSettings
+        category: "MediaPlayer"
+        property string savedQueue: "[]"
+        property int savedQueueIndex: -1
+        property real savedPosition: 0.0
+        property int savedRepeatMode: 0
+        property real savedVolume: 1.0
+    }
+
+    Timer {
+        id: startupRestoreTimer
+        interval: 200
+        repeat: true
+        running: true
+        onTriggered: {
+            if (trackModel.rowCount() > 0) {
+                running = false;
+                try {
+                    audioEngine.volume = sessionSettings.savedVolume;
+                    repeatMode = sessionSettings.savedRepeatMode;
+
+                    let paths = JSON.parse(sessionSettings.savedQueue);
+                    if (paths && paths.length > 0 && window.playbackQueue.length === 0) {
+                        let newQueue = [];
+                        for (let i = 0; i < paths.length; i++) {
+                            // C++ getTrackByPath returns a QVariantMap which translates to a JS object
+                            let track = trackModel.getTrackByPath(paths[i]);
+                            // Ensure track is valid
+                            if (track && track.filePath !== undefined && track.filePath !== "") {
+                                newQueue.push(track);
+                            }
+                        }
+                        if (newQueue.length > 0) {
+                            window.playbackQueue = newQueue;
+                            if (sessionSettings.savedQueueIndex >= 0 && sessionSettings.savedQueueIndex < newQueue.length) {
+                                window.currentQueueIndex = sessionSettings.savedQueueIndex;
+                                let t = window.playbackQueue[window.currentQueueIndex];
+                                window.currentPlayingTitle = t.title;
+                                window.currentPlayingArtist = t.artist;
+                                window.currentPlayingPath = t.filePath;
+                                
+                                audioEngine.loadFile(t.filePath);
+                                // Ensure miniaudio has enough time to initialize ASYNC load before seeking
+                                restorePosTimer.start();
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.log("Error restoring session:", e);
+                }
+            }
+        }
+    }
+
+    Timer { 
+        id: restorePosTimer
+        interval: 200
+        onTriggered: {
+            audioEngine.setPosition(sessionSettings.savedPosition);
+        }
+    }
+
+    Component.onDestruction: {
+        let paths = [];
+        for (let i = 0; i < playbackQueue.length; i++) {
+            paths.push(playbackQueue[i].filePath);
+        }
+        sessionSettings.savedQueue = JSON.stringify(paths);
+        sessionSettings.savedQueueIndex = currentQueueIndex;
+        sessionSettings.savedPosition = audioEngine.position;
+        sessionSettings.savedVolume = audioEngine.volume;
+        sessionSettings.savedRepeatMode = repeatMode;
+    }
 
     function playTrackAtIndex(idx, contextCategory) {
         if (idx < 0) return;
@@ -66,10 +154,16 @@ ApplicationWindow {
     Connections {
         target: audioEngine
         function onPlaybackFinished() {
-            if (repeatMode) {
+            if (repeatMode === 1) { // Repeat Track
                 audioEngine.setPosition(0);
                 audioEngine.play();
-            } else {
+            } else if (repeatMode === 2) { // Repeat All
+                if (currentQueueIndex >= 0 && currentQueueIndex < playbackQueue.length - 1) {
+                    playTrackAtIndex(currentQueueIndex + 1);
+                } else if (playbackQueue.length > 0) {
+                    playTrackAtIndex(0); // Loop back
+                }
+            } else { // Repeat Off
                 if (currentQueueIndex >= 0 && currentQueueIndex < playbackQueue.length - 1) {
                     playTrackAtIndex(currentQueueIndex + 1);
                 }
@@ -88,8 +182,23 @@ ApplicationWindow {
     // --- Global Keyboard Shortcuts ---
     property real previousVolume: 1.0
 
-    Shortcut { sequence: "Ctrl+Left"; context: Qt.ApplicationShortcut; onActivated: playTrackAtIndex(currentQueueIndex - 1) }
+    Shortcut {
+        sequence: "Ctrl+Left"
+        context: Qt.ApplicationShortcut
+        onActivated: {
+            if (audioEngine.position > 2.0) {
+                audioEngine.setPosition(0.0)
+            } else {
+                if (window.currentQueueIndex > 0) {
+                    playTrackAtIndex(window.currentQueueIndex - 1)
+                }
+            }
+        }
+    }
     Shortcut { sequence: "Ctrl+Right"; context: Qt.ApplicationShortcut; onActivated: playTrackAtIndex(currentQueueIndex + 1) }
+    Shortcut { sequence: "Backspace"; context: Qt.ApplicationShortcut; onActivated: libraryViewMain.goBack() }
+    Shortcut { sequence: StandardKey.Back; context: Qt.ApplicationShortcut; onActivated: libraryViewMain.goBack() }
+    Shortcut { sequence: "Ctrl+Shift+F"; context: Qt.ApplicationShortcut; onActivated: toggleFullScreen() }
     Shortcut {
         sequence: "Space"
         context: Qt.ApplicationShortcut
@@ -115,7 +224,7 @@ ApplicationWindow {
     Shortcut { sequence: "Up"; context: Qt.ApplicationShortcut; onActivated: audioEngine.volume = Math.min(1.0, audioEngine.volume + 0.1) }
     Shortcut { sequence: "Down"; context: Qt.ApplicationShortcut; onActivated: audioEngine.volume = Math.max(0.0, audioEngine.volume - 0.1) }
     Shortcut { sequence: "Ctrl+P"; context: Qt.ApplicationShortcut; onActivated: queueDrawer.visible = !queueDrawer.visible }
-    Shortcut { sequence: "F"; context: Qt.ApplicationShortcut; onActivated: libraryView.isSidebarVisible = !libraryView.isSidebarVisible }
+    Shortcut { sequence: "F"; context: Qt.ApplicationShortcut; onActivated: libraryViewMain.isSidebarVisible = !libraryViewMain.isSidebarVisible }
     Shortcut { sequence: "Ctrl+Q"; context: Qt.ApplicationShortcut; onActivated: Qt.quit() }
     // Esc is naturally handled by Qt Popups to close them, so no explicit mapping needed here.
 
@@ -127,17 +236,18 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
-        // Custom Title Bar
-        Rectangle {
-            id: titleBar
-            Layout.fillWidth: true
-            Layout.preferredHeight: 35
-            color: "transparent"
-            
-            // Drag Handler for moving the frameless window
-            DragHandler {
-                onActiveChanged: if (active) window.startSystemMove()
-            }
+            // Custom Title Bar
+            Rectangle {
+                id: titleBar
+                Layout.fillWidth: true
+                Layout.preferredHeight: window.isFullScreen ? 0 : 35
+                color: "transparent"
+                visible: !window.isFullScreen
+                
+                // Drag Handler for moving the frameless window
+                DragHandler {
+                    onActiveChanged: if (active) window.startSystemMove()
+                }
 
             RowLayout {
                 anchors.fill: parent
@@ -150,8 +260,9 @@ ApplicationWindow {
                     color: "white"
                     font.bold: true
                     font.pixelSize: 14
-                    Layout.fillWidth: true
                 }
+
+                Item { Layout.fillWidth: true } // spacer pushes buttons to the right
 
                 ToolButton {
                     icon.source: "qrc:/qml/icons/minimize.svg"
@@ -193,21 +304,10 @@ ApplicationWindow {
             Layout.fillHeight: true
 
             LibraryView {
+                id: libraryViewMain
                 anchors.fill: parent
-                anchors.bottomMargin: playbackBar.height // Reserve space for playback bar
+                onMenuClicked: mainMenuPopup.open()
             }
-        
-        ToolButton {
-            id: menuButton
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: 15
-            icon.source: "qrc:/qml/icons/menu.svg"
-            icon.color: "white"
-            icon.width: 24
-            icon.height: 24
-            display: AbstractButton.IconOnly
-            onClicked: mainMenuPopup.open()
         }
 
         Popup {
@@ -223,6 +323,13 @@ ApplicationWindow {
                 anchors.fill: parent
                 spacing: 2
                 
+                Button {
+                    Layout.fillWidth: true
+                    text: "Toggle Fullscreen"
+                    contentItem: Text { text: parent.text; color: "white"; font.pixelSize: 15; verticalAlignment: Text.AlignVCenter; leftPadding: 15; topPadding: 8; bottomPadding: 8 }
+                    background: Rectangle { color: parent.hovered ? "#2a2a35" : "transparent"; radius: 4 }
+                    onClicked: { mainMenuPopup.close(); toggleFullScreen() }
+                }
                 Button {
                     Layout.fillWidth: true
                     text: "Scan Directory"
@@ -343,7 +450,7 @@ ApplicationWindow {
             x: Math.round((parent.width - width) / 2)
             y: Math.round((parent.height - height) / 2)
             width: 750
-            height: 380
+            height: 480
             modal: true
             focus: true
             background: Rectangle { color: "#18181c"; radius: 12; border.color: "#33333b"; border.width: 1 }
@@ -381,6 +488,8 @@ ApplicationWindow {
                             { k: "Ctrl + M", d: "Mute / Unmute" },
                             { k: "Ctrl + P", d: "Toggle Queue Panel" },
                             { k: "F", d: "Toggle Library Filters" },
+                            { k: "Ctrl+Shift+F", d: "Toggle Fullscreen" },
+                            { k: "Backspace", d: "Go Back (Library)" },
                             { k: "Esc", d: "Close Menus / Popups" },
                             { k: "Ctrl + Q", d: "Quit Player" }
                         ]
@@ -665,9 +774,8 @@ ApplicationWindow {
         // Persistent Bottom Playback Bar
         Rectangle {
             id: playbackBar
-            width: parent.width
-            height: 80
-            anchors.bottom: parent.bottom
+            Layout.fillWidth: true
+            Layout.preferredHeight: 80
             color: "#18181c"
             border.color: "#33333b"
             border.width: 1
@@ -702,8 +810,12 @@ ApplicationWindow {
                     icon.color: "white"
                     display: AbstractButton.IconOnly
                     onClicked: {
-                        if (window.currentQueueIndex > 0) {
-                            window.playTrackAtIndex(window.currentQueueIndex - 1)
+                        if (audioEngine.position > 2.0) {
+                            audioEngine.setPosition(0.0)
+                        } else {
+                            if (window.currentQueueIndex > 0) {
+                                window.playTrackAtIndex(window.currentQueueIndex - 1)
+                            }
                         }
                     }
                 }
@@ -733,6 +845,15 @@ ApplicationWindow {
                             window.playTrackAtIndex(window.currentQueueIndex + 1)
                         }
                     }
+                }
+
+                ToolButton {
+                    icon.source: window.repeatMode === 1 ? "qrc:/qml/icons/repeat_one.svg" : "qrc:/qml/icons/repeat.svg"
+                    icon.color: window.repeatMode !== 0 ? Material.color(Material.Purple) : "white"
+                    display: AbstractButton.IconOnly
+                    width: 40
+                    height: 40
+                    onClicked: window.repeatMode = (window.repeatMode + 1) % 3
                 }
 
                 Text {
@@ -782,5 +903,4 @@ ApplicationWindow {
             }
         }
     }
-}
 }

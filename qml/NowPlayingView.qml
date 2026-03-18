@@ -14,8 +14,70 @@ Item {
         return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
     }
 
+    // Custom Title Bar for Now Playing (Matches main window)
+    Rectangle {
+        id: npTitleBar
+        width: parent.width
+        height: window.isFullScreen ? 0 : 35
+        color: "transparent"
+        visible: !window.isFullScreen
+        z: 20
+
+        DragHandler {
+            onActiveChanged: if (active) window.startSystemMove()
+        }
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 15
+            anchors.rightMargin: 10
+            spacing: 15
+
+            Label {
+                text: window.title + " - Now Playing"
+                color: "white"
+                font.bold: true
+                font.pixelSize: 14
+                Layout.fillWidth: true
+            }
+
+            ToolButton {
+                icon.source: "qrc:/qml/icons/minimize.svg"
+                icon.color: "white"
+                display: AbstractButton.IconOnly
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+                onClicked: window.showMinimized()
+            }
+
+            ToolButton {
+                icon.source: "qrc:/qml/icons/maximize.svg"
+                icon.color: "white"
+                display: AbstractButton.IconOnly
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+                onClicked: {
+                    if (window.visibility === Window.Maximized) {
+                        window.showNormal()
+                    } else {
+                        window.showMaximized()
+                    }
+                }
+            }
+
+            ToolButton {
+                icon.source: "qrc:/qml/icons/close.svg"
+                icon.color: "white"
+                display: AbstractButton.IconOnly
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+                onClicked: window.close()
+            }
+        }
+    }
+
     ToolButton {
-        anchors.top: parent.top
+        anchors.top: npTitleBar.bottom
         anchors.left: parent.left
         anchors.margins: 25
         icon.source: "qrc:/qml/icons/drop_down.svg"
@@ -28,7 +90,7 @@ Item {
     }
 
     ToolButton {
-        anchors.top: parent.top
+        anchors.top: npTitleBar.bottom
         anchors.right: parent.right
         anchors.margins: 25
         icon.source: "qrc:/qml/icons/eq.svg"
@@ -138,12 +200,12 @@ Item {
                 spacing: 20
 
                 RoundButton {
-                    icon.source: window.repeatMode ? "qrc:/qml/icons/repeat_one.svg" : "qrc:/qml/icons/repeat.svg"
+                    icon.source: window.repeatMode === 1 ? "qrc:/qml/icons/repeat_one.svg" : "qrc:/qml/icons/repeat.svg"
                     icon.color: "white"
                     display: AbstractButton.IconOnly
-                    checked: window.repeatMode
-                    onClicked: window.repeatMode = !window.repeatMode
-                    Material.background: window.repeatMode ? Material.accent : "transparent"
+                    checked: window.repeatMode !== 0
+                    onClicked: window.repeatMode = (window.repeatMode + 1) % 3
+                    Material.background: window.repeatMode !== 0 ? Material.accent : "transparent"
                 }
                 
                 RoundButton {
@@ -151,8 +213,12 @@ Item {
                     icon.color: "white"
                     display: AbstractButton.IconOnly
                     onClicked: {
-                        if (window.currentPlayingIndex > 0) {
-                            window.playTrackAtIndex(window.currentPlayingIndex - 1)
+                        if (audioEngine.position > 2.0) {
+                            audioEngine.setPosition(0.0)
+                        } else {
+                            if (window.currentQueueIndex > 0) {
+                                window.playTrackAtIndex(window.currentQueueIndex - 1)
+                            }
                         }
                     }
                 }
@@ -174,8 +240,8 @@ Item {
                     icon.color: "white"
                     display: AbstractButton.IconOnly
                     onClicked: {
-                        if (window.currentPlayingIndex >= 0 && window.currentPlayingIndex < trackModel.rowCount() - 1) {
-                            window.playTrackAtIndex(window.currentPlayingIndex + 1)
+                        if (window.currentQueueIndex >= 0 && window.currentQueueIndex < window.playbackQueue.length - 1) {
+                            window.playTrackAtIndex(window.currentQueueIndex + 1)
                         }
                     }
                 }

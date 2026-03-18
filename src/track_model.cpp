@@ -64,6 +64,24 @@ QVariantMap TrackModel::get(int row) const {
   return map;
 }
 
+QVariantMap TrackModel::getTrackByPath(const QString &filePath) const {
+  QVariantMap map;
+  for (const auto &track : m_allTracks) {
+    if (track.filePath == filePath) {
+      map.insert("title", track.title);
+      map.insert("artist", track.artist);
+      map.insert("album", track.album);
+      map.insert("genre", track.genre);
+      map.insert("duration", track.duration);
+      map.insert("filePath", track.filePath);
+      map.insert("hasCoverArt", track.hasCoverArt);
+      return map;
+    }
+  }
+  return map;
+}
+
+
 void TrackModel::setTracks(const QVector<Track> &tracks) {
   beginResetModel();
   m_allTracks = tracks;

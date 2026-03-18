@@ -33,6 +33,11 @@ int main(int argc, char *argv[]) {
   qputenv("QT_QUICK_CONTROLS_MATERIAL_BACKGROUND", "#0a0a0c");
   qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "Purple");
 
+  // Application metadata for QSettings
+  QCoreApplication::setOrganizationName("LordTael");
+  QCoreApplication::setOrganizationDomain("lordtael.com");
+  QCoreApplication::setApplicationName("ModernMusicPlayer");
+
   QApplication app(argc, argv);
 
   // Register Equalizer structure for QML so it can interact with the pointer

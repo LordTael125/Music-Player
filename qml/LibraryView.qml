@@ -8,6 +8,14 @@ Item {
     property string activeCategoryName: "All Tracks"
     property string categoryContext: "All Tracks"
     property bool isSidebarVisible: true
+    signal menuClicked()
+    
+    function goBack() {
+        if (mainStack.depth > 1) {
+            mainStack.pop()
+            libraryView.activeCategoryName = libraryView.categoryContext
+        }
+    }
     
     RowLayout {
         anchors.fill: parent
@@ -123,10 +131,7 @@ Item {
                         visible: mainStack.depth > 1
                         icon.source: "qrc:/qml/icons/back.svg"
                         icon.color: "white"
-                        onClicked: {
-                            mainStack.pop()
-                            libraryView.activeCategoryName = libraryView.categoryContext
-                        }
+                        onClicked: libraryView.goBack()
                     }
 
                     Label {
@@ -135,6 +140,15 @@ Item {
                         font.bold: true
                         color: "white"
                         Layout.fillWidth: true
+                    }
+                    
+                    ToolButton {
+                        icon.source: "qrc:/qml/icons/menu.svg"
+                        icon.color: "white"
+                        icon.width: 24
+                        icon.height: 24
+                        display: AbstractButton.IconOnly
+                        onClicked: libraryView.menuClicked()
                     }
                 }
                 
@@ -164,8 +178,10 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: 10
-                    color: "#202025"
+                    color: window.currentPlayingPath === model.filePath ? "#2a2a35" : "#202025"
                     radius: 8
+                    border.color: window.currentPlayingPath === model.filePath ? "#0078d7" : "transparent"
+                    border.width: window.currentPlayingPath === model.filePath ? 2 : 0
                     
                     // Album Art
                     Rectangle {

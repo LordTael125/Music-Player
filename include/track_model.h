@@ -39,8 +39,10 @@ public slots:
   void filterByCollection(const QString &collection);
 
   // Provide unique lists for the Tile UI
+  Q_INVOKABLE QVariantMap getTrackByPath(const QString &filePath) const;
   Q_INVOKABLE QVariantList getArtistTiles() const;
   Q_INVOKABLE QVariantList getAlbumTiles() const;
+
   Q_INVOKABLE QVariantList getFolderTiles() const;
   Q_INVOKABLE QVariantList getCollectionTiles() const;
 
