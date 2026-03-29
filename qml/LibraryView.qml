@@ -7,7 +7,7 @@ Item {
     id: libraryView
     property string activeCategoryName: "All Tracks"
     property string categoryContext: "All Tracks"
-    property bool isSidebarVisible: true
+    property bool isSidebarVisible: false
     signal menuClicked()
     
     function goBack() {

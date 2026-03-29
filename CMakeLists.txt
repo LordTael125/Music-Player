@@ -58,5 +58,5 @@ target_link_libraries(MusicPlayer PRIVATE
 
 # Installation Targets for LinuxDeployQt / Desktop Integration
 install(TARGETS MusicPlayer RUNTIME DESTINATION bin)
-install(FILES MusicPlayer.desktop DESTINATION share/applications)
-install(FILES qml/icons/AppIcon.png DESTINATION share/icons/hicolor/512x512/apps RENAME MusicPlayer.png)
+install(FILES "Dist/Linux/MusicPlayer.desktop" DESTINATION share/applications)
+install(FILES "Dist/Linux/AppIcon.png" DESTINATION share/icons/hicolor/512x512/apps RENAME MusicPlayer.png)

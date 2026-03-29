@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Modern Music Player
+GenericName=Music Player
+Comment=A modern Qt5 Music Player with TagLib
+Exec=MusicPlayer
+Icon=MusicPlayer
+Terminal=false
+Categories=AudioVideo;Audio;Player;Qt;
